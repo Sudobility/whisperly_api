@@ -27,8 +27,7 @@ interface EntityPermissionError {
 
 /** Discriminated union result for entity permission checks */
 export type EntityPermissionResult =
-  | EntityPermissionSuccess
-  | EntityPermissionError;
+  EntityPermissionSuccess | EntityPermissionError;
 
 /**
  * Get entity by slug and verify user membership with appropriate permissions.
