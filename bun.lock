@@ -6,15 +6,15 @@
       "name": "@sudobility/whisperly_api",
       "dependencies": {
         "@hono/zod-validator": "~0.7.6",
-        "@sudobility/auth_service": "^1.1.28",
-        "@sudobility/entity_service": "^1.0.48",
-        "@sudobility/ratelimit_service": "^1.0.46",
-        "@sudobility/subscription_service": "^1.0.30",
-        "@sudobility/types": "^1.9.75",
-        "@sudobility/whisperly_types": "^1.0.42",
+        "@sudobility/auth_service": "^1.1.29",
+        "@sudobility/entity_service": "^1.0.49",
+        "@sudobility/ratelimit_service": "^1.0.47",
+        "@sudobility/subscription_service": "^1.0.31",
+        "@sudobility/types": "^1.9.76",
+        "@sudobility/whisperly_types": "^1.0.43",
         "drizzle-orm": "~0.45.4",
         "firebase-admin": "~13.10.0",
-        "hono": "~4.13.13",
+        "hono": "~4.11.5",
         "postgres": "~3.4.9",
         "resend": "~6.34.1",
         "zod": "~3.25.76",
@@ -29,7 +29,7 @@
         "eslint": "~9.39.5",
         "eslint-config-prettier": "~10.1.8",
         "eslint-plugin-import": "~2.32.0",
-        "eslint-plugin-react-hooks": "~7.1.1",
+        "eslint-plugin-react-hooks": "~7.0.1",
         "eslint-plugin-react-refresh": "~0.4.26",
         "prettier": "~3.9.10",
         "typescript": "~5.9.3",
@@ -267,19 +267,19 @@
 
     "@standard-schema/spec": ["@standard-schema/spec@1.1.0", "", {}, "sha512-l2aFy5jALhniG5HgqrD6jXLi/rUWrKvqN/qJx6yoJsgKhblVd+iqqU4RCXavm/jPityDo5TCvKMnpjKnOriy0w=="],
 
-    "@sudobility/auth_service": ["@sudobility/auth_service@1.1.28", "https://npm.pkg.github.com/download/@sudobility/auth_service/1.1.28/85b649151ab128066eb60e6b01c06b90ec9ca74c", { "peerDependencies": { "@sudobility/types": "^1.9.75", "firebase-admin": "^13.0.0" } }, "sha512-aBXobazr81t9lFa5ecj6ldcOOOJ7NvcRm4+V6p+HBxZCGwq0MArtFDzOR+5raq9BHmUBmr1iMBnaaABNlmlNzA=="],
+    "@sudobility/auth_service": ["@sudobility/auth_service@1.1.29", "https://npm.pkg.github.com/download/@sudobility/auth_service/1.1.29/e027820deaa9741160105affc7a83bc116f51770", { "peerDependencies": { "@sudobility/types": "^1.9.76", "firebase-admin": "^13.0.0" } }, "sha512-Q6sViw3i6CGZ88+PpwLQoLAdTfeVCCSvIHm0BmFRNPsMZLdru3ZoVNzBkA0JprCvG5aPbzhJ+cHR6nZkIu/HBA=="],
 
-    "@sudobility/entity_service": ["@sudobility/entity_service@1.0.48", "https://npm.pkg.github.com/download/@sudobility/entity_service/1.0.48/230f1b122c10e97698acf113df5ff14e54fcf738", { "peerDependencies": { "@sudobility/types": "^1.9.75", "drizzle-orm": "^0.45.0", "hono": "^4.0.0" } }, "sha512-HHVwQGeI2/7RoGT8ujEMvIX01BamOli0bUCzNTfNYR7r/k6weouPjxF5NoyIeKE54iOUAD/dUYAuyRF0q7PIiA=="],
+    "@sudobility/entity_service": ["@sudobility/entity_service@1.0.49", "https://npm.pkg.github.com/download/@sudobility/entity_service/1.0.49/cb4713d31b89f70569a9ee42f7179b6f1f03edac", { "peerDependencies": { "@sudobility/types": "^1.9.76", "drizzle-orm": "^0.45.0", "hono": "^4.0.0" } }, "sha512-NoTqhJc9WiYEWAPzVYEQSZM50/6gGCOPcDLXOMHkEWCv3kuE6CSFQcM0DX1r6SDcM5k+KgS/LVVkFOUAwAWUYA=="],
 
-    "@sudobility/ratelimit_service": ["@sudobility/ratelimit_service@1.0.46", "https://npm.pkg.github.com/download/@sudobility/ratelimit_service/1.0.46/e028a5c39627bf4f93cd1770158a05a94a4e6a8d", { "peerDependencies": { "@sudobility/types": "^1.9.75", "drizzle-orm": "^0.45.0", "hono": "^4.0.0", "postgres": "^3.4.0" } }, "sha512-tNsKwGGDulA16J/vVS1+kqWPfE52FCKGAUTps4cvj0KnrjYF2RW2UHMhJsKzJA9s9B4zxLBWfV596G3yKrfDFQ=="],
+    "@sudobility/ratelimit_service": ["@sudobility/ratelimit_service@1.0.47", "https://npm.pkg.github.com/download/@sudobility/ratelimit_service/1.0.47/26fdf68eef8a16db207010954c0f5ba594d879e8", { "peerDependencies": { "@sudobility/types": "^1.9.76", "drizzle-orm": "^0.45.0", "hono": "^4.0.0", "postgres": "^3.4.0" } }, "sha512-knXxGCu2t2zDaEG0850vvmm7/Sq9EjW2yZw0Us+mB4DsmyfBQGbW5/hI2NnfjJq2UBB3SZRR6LHsjSHwhOljAQ=="],
 
-    "@sudobility/subscription_service": ["@sudobility/subscription_service@1.0.30", "https://npm.pkg.github.com/download/@sudobility/subscription_service/1.0.30/1794b8ecc8c139b6cac55d54b979501d844da188", {}, "sha512-F1uVi90uZHGJ3FV/4pB5/FH3IZsjOQRTi6LD/TZWIZc86KuawPr4g8u49QRnMUP1VPuZQqhGzGweQ/U3+Ad+Sw=="],
+    "@sudobility/subscription_service": ["@sudobility/subscription_service@1.0.31", "https://npm.pkg.github.com/download/@sudobility/subscription_service/1.0.31/75e7c299ed0bb0e3ffe030d928a9546f973aac0b", {}, "sha512-IOMfws2N/EB2KMRNAZMevUK4ngcDMkIuGHDFLurwSJX0rHWB7OX9yQ8CHryT0xnmahVfGkCAdRGGZX/gxpkInw=="],
 
     "@sudobility/test-db-guard": ["@sudobility/test-db-guard@1.0.3", "https://npm.pkg.github.com/download/@sudobility/test-db-guard/1.0.3/1b60364ccb30369e4ddc9a005ffdf03ea2644a65", {}, "sha512-VLYACu7PMDG4hqO9g5y/E0NOgDNS5HnG+UU/jr5Po0S5zrZv80i51rxwC2sOVX8gbyR04s632OoMULFiju4aZw=="],
 
-    "@sudobility/types": ["@sudobility/types@1.9.75", "https://npm.pkg.github.com/download/@sudobility/types/1.9.75/d041222e1a9c48b1857a25686361fa493265e572", {}, "sha512-c0IqHhNsyMxWFzv+sC8drTXid1s/yberzme5JJTYIR2CE+DxpnjFCyL0AIMKUwTQYhYKvRZG0JkWRFplirbBrw=="],
+    "@sudobility/types": ["@sudobility/types@1.9.76", "https://npm.pkg.github.com/download/@sudobility/types/1.9.76/71635156f72fd9461107d5f147b3dc1c49f863d0", {}, "sha512-b7maZHR5wM84VlQ+l9R+2guzSOrExog6OUNy1oCe7h0abW13syycmnLQL0g+qql0aQ84qTB4A0mJelhY3Vef4Q=="],
 
-    "@sudobility/whisperly_types": ["@sudobility/whisperly_types@1.0.42", "https://npm.pkg.github.com/download/@sudobility/whisperly_types/1.0.42/db6dd5ea5575a23fbe9446beb999f27003f27dfc", { "peerDependencies": { "@sudobility/types": "^1.9.75" } }, "sha512-gsO9ZiGWcLh7vGMjZZ3YkwirQfN1iNqolQCzytYnEMlD2xqgiDNg0fWvQZBA3H6ndpbJGNGFObkm4lUuMdBtcg=="],
+    "@sudobility/whisperly_types": ["@sudobility/whisperly_types@1.0.43", "https://npm.pkg.github.com/download/@sudobility/whisperly_types/1.0.43/9407ec8a1e984f90336fac3b368e36f449e5ba62", { "peerDependencies": { "@sudobility/types": "^1.9.76" } }, "sha512-qx4CA0BqCoU9XXhNHRIHNoJPvh5ycuYOUk3l8oYrdECXGCvRdWGjWJAv0DvD3Aaoz/v1JPiaIPMwBT/9N9enlg=="],
 
     "@tootallnate/once": ["@tootallnate/once@2.0.1", "", {}, "sha512-HqmEUIGRJ5fSXchkVgR5F7qn48bDBzv0kWj/Kfu5e6uci4UlEeng4331LnBkWffb++Ei3FOVLxo8JJWMFBDMeQ=="],
 
@@ -503,7 +503,7 @@
 
     "eslint-plugin-import": ["eslint-plugin-import@2.32.0", "", { "dependencies": { "@rtsao/scc": "^1.1.0", "array-includes": "^3.1.9", "array.prototype.findlastindex": "^1.2.6", "array.prototype.flat": "^1.3.3", "array.prototype.flatmap": "^1.3.3", "debug": "^3.2.7", "doctrine": "^2.1.0", "eslint-import-resolver-node": "^0.3.9", "eslint-module-utils": "^2.12.1", "hasown": "^2.0.2", "is-core-module": "^2.16.1", "is-glob": "^4.0.3", "minimatch": "^3.1.2", "object.fromentries": "^2.0.8", "object.groupby": "^1.0.3", "object.values": "^1.2.1", "semver": "^6.3.1", "string.prototype.trimend": "^1.0.9", "tsconfig-paths": "^3.15.0" }, "peerDependencies": { "eslint": "^2 || ^3 || ^4 || ^5 || ^6 || ^7.2.0 || ^8 || ^9" } }, "sha512-whOE1HFo/qJDyX4SnXzP4N6zOWn79WhnCUY/iDR0mPfQZO8wcYE4JClzI2oZrhBnnMUCBCHZhO6VQyoBU95mZA=="],
 
-    "eslint-plugin-react-hooks": ["eslint-plugin-react-hooks@7.1.1", "", { "dependencies": { "@babel/core": "^7.24.4", "@babel/parser": "^7.24.4", "hermes-parser": "^0.25.1", "zod": "^3.25.0 || ^4.0.0", "zod-validation-error": "^3.5.0 || ^4.0.0" }, "peerDependencies": { "eslint": "^3.0.0 || ^4.0.0 || ^5.0.0 || ^6.0.0 || ^7.0.0 || ^8.0.0-0 || ^9.0.0 || ^10.0.0" } }, "sha512-f2I7Gw6JbvCexzIInuSbZpfdQ44D7iqdWX01FKLvrPgqxoE7oMj8clOfto8U6vYiz4yd5oKu39rRSVOe1zRu0g=="],
+    "eslint-plugin-react-hooks": ["eslint-plugin-react-hooks@7.0.1", "", { "dependencies": { "@babel/core": "^7.24.4", "@babel/parser": "^7.24.4", "hermes-parser": "^0.25.1", "zod": "^3.25.0 || ^4.0.0", "zod-validation-error": "^3.5.0 || ^4.0.0" }, "peerDependencies": { "eslint": "^3.0.0 || ^4.0.0 || ^5.0.0 || ^6.0.0 || ^7.0.0 || ^8.0.0-0 || ^9.0.0" } }, "sha512-O0d0m04evaNzEPoSW+59Mezf8Qt0InfgGIBJnpC0h3NH/WjUAR7BIKUfysC6todmtiZ/A0oUVS8Gce0WhBrHsA=="],
 
     "eslint-plugin-react-refresh": ["eslint-plugin-react-refresh@0.4.26", "", { "peerDependencies": { "eslint": ">=8.40" } }, "sha512-1RETEylht2O6FM/MvgnyvT+8K21wLqDNg4qD51Zj3guhjt433XbnnkVttHMyaVyAFD03QSV4LPS5iE3VQmO7XQ=="],
 
@@ -627,7 +627,7 @@
 
     "hermes-parser": ["hermes-parser@0.25.1", "", { "dependencies": { "hermes-estree": "0.25.1" } }, "sha512-6pEjquH3rqaI6cYAXYPcz9MS4rY6R4ngRgrgfDshRptUZIc3lw0MCIJIGDj9++mfySOuPTHB4nrSW99BCvOPIA=="],
 
-    "hono": ["hono@4.13.13", "", {}, "sha512-CQ46U0ZkAGmbT/4UxdzzGJpacP2IeKgY4a5/tOI9AABbpOMfK739wfDXmv1usCk+3RkKj1hQy4/fjhiwa2xlrA=="],
+    "hono": ["hono@4.11.10", "", {}, "sha512-kyWP5PAiMooEvGrA9jcD3IXF7ATu8+o7B3KCbPXid5se52NPqnOpM/r9qeW2heMnOekF4kqR1fXJqCYeCLKrZg=="],
 
     "html-entities": ["html-entities@2.6.0", "", {}, "sha512-kig+rMn/QOVRvr7c86gQ8lWXq+Hkv6CbAH1hLu+RG338StTpE8Z0b44SDVaqVu7HGKf27frdmUYEs9hTUX/cLQ=="],
 
