@@ -1,6 +1,6 @@
 {
   "name": "@sudobility/whisperly_api",
-  "version": "1.0.84",
+  "version": "1.0.85",
   "module": "src/index.ts",
   "type": "module",
   "private": true,
@@ -55,6 +55,6 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/johnqh/whisperly_api.git"
+    "url": "https://github.com/Sudobility/whisperly_api.git"
   }
 }
