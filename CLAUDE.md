@@ -1,360 +1,132 @@
 # CLAUDE.md - whisperly_api
 
-> **Git policy — never auto-commit or auto-push.** Leave your work in the working tree.
-> Run `git commit`, `git push`, `gh pr create`, or `scripts/push_all.sh` **only when the user
-> explicitly asks in that turn**. Approval for an earlier change does not carry forward, and
-> finishing a task is not permission to commit it.
+> **Git policy — never auto-commit or auto-push.** Leave work in the working tree. Run
+> `git commit`/`git push`/`gh pr create` **only when the user explicitly asks in that turn**.
+> Finishing a task is not permission to commit it. Stay on the current branch (no feature branches).
 
-## Project Overview
+## What it is
 
-`@sudobility/whisperly_api` (v1.0.51) is the backend API server for the Whisperly localization SaaS platform. Built with Hono on Bun, it provides REST endpoints for project management, dictionary/glossary management, translation services, analytics, entity/organization management, and subscription-based rate limiting.
+`@sudobility/whisperly_api` — backend REST API for the Whisperly localization SaaS. Hono app
+on the **Bun** runtime. PostgreSQL via Drizzle ORM (schema `whisperly`), Firebase JWT auth, Zod
+validation, Resend email, RevenueCat-based rate limiting. Private, BUSL-1.1. Backend only.
 
-**Platform**: Backend only (Bun runtime).
-**License**: BUSL-1.1 (Business Source License)
-**Database**: PostgreSQL via Drizzle ORM (schema: `whisperly`)
-**Containerized**: Yes (Dockerfile with multi-platform support, `oven/bun:latest`)
+## Package manager: Bun
 
-## Package Manager
+`bun install`, `bun run <script>`, `bun add <pkg>` — **not** npm/yarn. Bun runs TypeScript
+directly (`tsconfig` is `noEmit`). `@sudobility/*` deps resolve from GitHub Packages
+(`.npmrc` → `npm.pkg.github.com`); needs a read token to install.
 
-**Bun** (not npm/yarn): `bun install`, `bun run <script>`, `bun add <package>`
+## Commands (verified)
 
-## Project Structure
+```bash
+bun run dev          # watch-mode server (src/index.ts)
+bun run start        # run once (Docker CMD / production)
+bun run typecheck    # tsc --noEmit
+bun run lint         # eslint src   (passes clean)
+bun run format       # prettier --write src
+bun run test:unit    # vitest run — 137 tests, no DB; this is what CI runs
+bun run test:watch   # vitest watch
+bun run test:db      # vitest --config vitest.db.config.ts (manual; see Testing)
+bun run verify       # typecheck + lint + test:unit
+bun run db:generate|db:migrate|db:push|db:studio   # drizzle-kit
+```
+
+There is **no `test` script** — `bun run test` silently runs the `/bin/test` shell builtin and
+fails. Use `bun run test:unit`.
+
+## Architecture
 
 ```
 src/
-├── index.ts                    # Hono app setup, global error handler, health check, server start
-├── config/
-│   ├── languages.json          # Available languages config (16 languages with flags)
-│   └── rateLimits.ts           # Rate limit tier definitions (none/whisperly/pro/enterprise)
+├── index.ts            # Hono setup: error handler, CORS, logger, 2MB body limit,
+│                       # health checks (/ , /health, /health/detailed), initDatabase(), server
+├── config/             # languages.json (supported langs), rateLimits.ts (tier definitions)
 ├── db/
-│   ├── index.ts                # PostgreSQL connection via Drizzle ORM (lazy-init proxy)
-│   ├── schema.ts               # All table definitions (users, entities, projects, dictionary, etc.)
-│   └── setup.ts                # Manual database setup script (run with: bun run src/db/setup.ts)
-├── lib/
-│   └── env-helper.ts           # getEnv() / getRequiredEnv() — reads .env.local → .env → process.env
-├── middleware/
-│   ├── firebaseAuth.ts         # Firebase JWT verification, sets c.get('userId'), c.get('siteAdmin')
-│   └── rateLimit.ts            # Per-entity rate limiting via RevenueCat subscription tiers
-├── routes/
-│   ├── index.ts                # Route aggregation & mounting under /api/v1
-│   ├── analytics.ts            # GET analytics by entity (date range, project filter)
-│   ├── available-languages.ts  # GET available target languages (from config)
-│   ├── dictionary.ts           # CRUD for dictionary terms (project-scoped)
-│   ├── entities.ts             # Entity/org management, members, invitations
-│   ├── invitations.ts          # User-facing invitation accept/decline (by token)
-│   ├── project-languages.ts    # GET/POST project target languages
-│   ├── projects.ts             # Project CRUD + API key management
-│   ├── ratelimits.ts           # Rate limit config & usage history
-│   ├── settings.ts             # User settings (legacy org paths)
-│   ├── translate.ts            # Public translation endpoint (core feature)
-│   └── users.ts                # User info (siteAdmin status)
-├── schemas/
-│   └── index.ts                # Zod validation schemas for all routes
-└── services/
-    ├── dictionaryCache.ts      # In-memory dictionary cache (lazy-loaded, invalidated on mutation)
-    ├── email.ts                # Resend email service for invitation emails
-    ├── firebase.ts             # Firebase Admin SDK initialization via auth_service
-    └── translation.ts          # External translation service client with mock fallback
-
-tests/
-├── __mocks__/                  # Test mocks for ratelimit_service and auth_service
-├── lib/                        # Library tests
-├── middleware/                  # Middleware tests
-├── schemas/                    # Schema validation tests
-├── services/                   # Service tests
-└── setup.ts                    # Test setup
-
-scripts/
-└── fix-personal-entity-roles.ts  # One-off migration script
-
-drizzle/                         # Generated Drizzle migrations
-drizzle.config.ts                # Drizzle Kit configuration
-Dockerfile                       # Multi-platform Docker build (oven/bun:latest)
+│   ├── index.ts        # lazy Proxy `db` + initDatabase() (creates schema/enums/tables/indexes)
+│   ├── schema.ts       # Drizzle tables (see Tables)
+│   └── setup.ts        # standalone schema setup → bun run src/db/setup.ts
+├── lib/                # env-helper, error-codes, entity-config, entity-helpers
+├── middleware/         # firebaseAuth.ts (JWT), rateLimit.ts (per-entity, RevenueCat)
+├── routes/             # index.ts mounts all under /api/v1; one file per resource
+├── schemas/index.ts    # Zod request schemas
+└── services/           # translation, dictionaryCache, email (Resend), firebase
+tests/                  # vitest; mirrors src/ layout; __mocks__/ holds alias mocks
+drizzle/                # generated migrations
 ```
 
-## Key Scripts
+### Routing & auth (src/routes/index.ts)
+- Everything under `/api/v1`. `POST /translate/:orgPath/:projectName` is the only **public** route.
+- All other routes are mounted on an `adminRoutes` group with `firebaseAuthMiddleware` on `*`.
+  **`/available-languages` is therefore authenticated**, despite being static config.
+- `firebaseAuth` sets `c.get('userId')`, `userEmail`, `firebaseUser`, `siteAdmin`. Anonymous
+  users rejected (403). Token verification cached 5 min. User record ensured in background.
+- Entity permissions via `@sudobility/entity_service` helpers: owner > editor > viewer.
 
-```bash
-bun run dev          # Start dev server with watch mode (--watch)
-bun run start        # Start production server
-bun run typecheck    # TypeScript type checking (tsc --noEmit)
-bun run lint         # ESLint (src directory)
-bun run format       # Prettier format (src directory)
-bun run format:check # Prettier check
-bun run test         # Unit tests, vitest. Never touches a database; this is what CI runs.
-bun run test:watch   # Watch mode
-bun run test:db      # Database tests (*.db.test.ts), vitest. MANUAL -- never run in CI.
-                     # Requires TEST_DATABASE_URL pointing at localhost.
-                     # No *.db.test.ts files exist yet, so this exits 1 with
-                     # "No test files found" -- expected, not a failure.
+### Translation pipeline (core)
+1. Load project dictionary cache → find terms in input → wrap as `{{term}}`.
+2. Call external translation service (`TRANSLATION_SERVICE_URL`).
+3. Replace `{{term}}` with the target-language dictionary translation.
+4. Record usage to `usage_records` (non-blocking).
+Extras: per-project API key (`wh_<hex>`, Bearer or `?api_key=`), IP allowlist, `?testMode=true`
+debug info, `skip_dictionaries` bypass, placeholder-retry on unresolved brackets.
 
-# Database
-bun run db:generate  # Generate Drizzle migrations
-bun run db:migrate   # Run migrations
-bun run db:push      # Push schema to database
-bun run db:studio    # Open Drizzle Studio
-```
+### Dictionary cache (services/dictionaryCache.ts)
+In-memory, lazy per project, key `"entityId:projectId"`, invalidated on dictionary mutation.
+Whole-word, case-insensitive, longest-match-first; indexes all language entries.
 
-## TypeScript Configuration
+### Rate limiting
+Per-entity, tied to RevenueCat tier: `none` (10/h,50/d,200/m), `whisperly`, `pro`, `enterprise`
+(unlimited). Site-admin entities bypass. `?testMode=true` uses sandbox subscriptions. Disabled
+gracefully when `REVENUECAT_API_KEY` unset. All singletons lazy-init (no env needed at import).
 
-- **Target**: ESNext
-- **Module**: Preserve (bundler mode)
-- **Strict mode**: Yes
-- **noEmit**: Yes (Bun runs TypeScript directly)
-- **noUncheckedIndexedAccess**: Off
-- **noImplicitOverride**: On
-- **Excludes**: `tests/**/*`, `scripts/**/*`
+## Database
 
-## Testing Notes
+- `db` is a **lazy Proxy** — connecting on first query, but it does NOT run migrations; schema
+  creation happens only inside `initDatabase()` (called on startup).
+- Tables in `db/schema.ts`: `users`, `user_settings`, `projects`, `project_languages`,
+  `dictionary`, `dictionary_entry`, `usage_records`. Entity tables (`entities`, `entity_members`)
+  are created by `@sudobility/entity_service` factory functions during `initDatabase`, not here.
+  There is **no** local rate-limit table (rate limiting is external via RevenueCat).
+- Some routes need explicit column selection because bare `.select()` doesn't work on the
+  entity_service factory-created tables.
 
-- Framework: Vitest (node environment), tests in `tests/` directory
-- Mocking strategy: Vitest `resolve.alias` maps `@sudobility/ratelimit_service`, `@sudobility/auth_service` and `@sudobility/entity_service` to test mocks. These aliases are duplicated in **both** `vitest.config.ts` and `vitest.db.config.ts`; a database suite without them fails to resolve those imports.
-- **Two configs, one runner.** `bun run test` excludes `**/*.db.test.ts`, so CI cannot reach a database. `bun run test:db` collects only those files and is manual.
-- **`TEST_DATABASE_URL`, not `DATABASE_URL`.** `tests/setup.db.ts` requires it to point at exactly `localhost` (`127.0.0.1` refused). `tests/setup.ts` deletes `DATABASE_URL` outright.
-- `@sudobility/subscription_service` is inlined via `server.deps.inline` -- unlike the three above it has no test mock, and it ships extensionless relative imports Node's ESM resolver rejects.
+## Testing
 
-## API Routes
+- Vitest, node env, tests in `tests/`. Mocking is via `resolve.alias` (not `vi.mock()`):
+  `ratelimit_service`, `auth_service`, `entity_service` map to `tests/__mocks__/*`.
+  **These aliases are duplicated in both `vitest.config.ts` and `vitest.db.config.ts`.**
+- `@sudobility/subscription_service` has no mock; it's inlined via `server.deps.inline`
+  (ships extensionless relative imports that Node's ESM resolver would reject).
+- Two configs: `test:unit` excludes `**/*.db.test.ts` (CI never touches a DB); `test:db`
+  collects only those files and runs manually (`fileParallelism: false`). No `*.db.test.ts`
+  files exist yet, so `test:db` exits non-zero with "No test files found" — expected.
+- DB suites use **`TEST_DATABASE_URL`** (must be exactly `localhost`); `tests/setup.ts` deletes
+  `DATABASE_URL` so unit tests cannot reach a real DB.
 
-All routes under `/api/v1`. Admin routes require Firebase JWT authentication via `firebaseAuthMiddleware`.
+## Conventions
 
-### Public Routes (no auth, rate-limited by entity)
-```
-POST   /translate/:orgPath/:projectName         # Translation request (core feature)
-```
+- Responses via `successResponse()` / `errorResponse()` from `@sudobility/whisperly_types`.
+  Some errors add an `errorCode` (`ErrorCode` enum in `src/lib/error-codes.ts`) for client i18n.
+- Validation: `zValidator("json"|"param"|"query", schema)` with schemas from `src/schemas`.
+- Env read via `getEnv()`/`getRequiredEnv()` (`src/lib/env-helper.ts`): `.env.local` → `.env` → `process.env`.
+- Each route file creates its own `createEntityHelpers(config)` (intentional per-route singleton).
+- `getEntityWithPermission` is duplicated across `dictionary.ts`, `project-languages.ts`,
+  `projects.ts` (projects.ts variant adds `errorCode`).
 
-### Authenticated Routes (Firebase JWT)
-
-**Entity-Centric:**
-```
-# Projects
-GET    /entities/:entitySlug/projects              # List projects
-POST   /entities/:entitySlug/projects              # Create project
-GET    /entities/:entitySlug/projects/:projectId    # Get project
-PUT    /entities/:entitySlug/projects/:projectId    # Update project
-DELETE /entities/:entitySlug/projects/:projectId    # Delete project
-POST   /entities/:entitySlug/projects/:projectId/api-key    # Generate API key (wh_<hex>)
-DELETE /entities/:entitySlug/projects/:projectId/api-key    # Delete API key
-
-# Dictionary (per project)
-GET    /entities/:entitySlug/projects/:projectId/dictionary              # List all dictionary entries
-POST   /entities/:entitySlug/projects/:projectId/dictionary              # Create entry (upsert)
-PUT    /entities/:entitySlug/projects/:projectId/dictionary/:dictionaryId # Update entry (partial)
-DELETE /entities/:entitySlug/projects/:projectId/dictionary/:dictionaryId # Delete entry
-GET    /entities/:entitySlug/projects/:projectId/dictionary/search/:lang/:text  # Search
-
-# Project Languages
-GET    /entities/:entitySlug/projects/:projectId/languages   # Get project languages
-POST   /entities/:entitySlug/projects/:projectId/languages   # Update project languages
-
-# Analytics
-GET    /entities/:entitySlug/analytics   # Usage analytics (with date range, project filter)
-
-# Rate Limits
-GET    /ratelimits/:rateLimitUserId              # Current rate limit status
-GET    /ratelimits/:rateLimitUserId/history/:period  # Usage history (hour/day/month)
-```
-
-**Entity Management:**
-```
-GET    /entities                                  # List user's entities
-POST   /entities                                  # Create organization
-GET    /entities/:entitySlug                      # Get entity details
-PUT    /entities/:entitySlug                      # Update entity
-DELETE /entities/:entitySlug                      # Delete entity (organizations only)
-GET    /entities/:entitySlug/members              # List members
-PUT    /entities/:entitySlug/members/:memberId    # Update member role
-DELETE /entities/:entitySlug/members/:memberId    # Remove member
-GET    /entities/:entitySlug/invitations          # List pending invitations
-POST   /entities/:entitySlug/invitations          # Create invitation (sends email)
-PUT    /entities/:entitySlug/invitations/:invitationId  # Renew invitation (resends email)
-DELETE /entities/:entitySlug/invitations/:invitationId  # Cancel invitation
-
-# User Invitations (by token)
-GET    /invitations                               # List pending invitations for user
-POST   /invitations/:token/accept                 # Accept invitation
-POST   /invitations/:token/decline                # Decline invitation
-```
-
-**User-Specific:**
-```
-GET    /users/:userId                # Get user info (siteAdmin status, self-only)
-GET    /users/:userId/settings       # Get user settings
-PUT    /users/:userId/settings       # Update settings
-```
-
-**Config:**
-```
-GET    /available-languages       # List all supported languages
-```
-
-## Key Patterns
-
-### Authentication
-
-```typescript
-// Middleware sets context variables
-c.set("firebaseUser", decodedToken);
-c.set("userId", decodedToken.uid);
-c.set("userEmail", decodedToken.email);
-c.set("siteAdmin", isSiteAdmin(decodedToken.email));
-```
-
-- Anonymous users are explicitly rejected (403)
-- User record is created/ensured in background (non-blocking)
-- Token verification is cached (5-minute TTL) via `createCachedVerifier`
-
-### Entity Permission Checks
-
-Routes use `@sudobility/entity_service` helpers for permission checking:
-
-```typescript
-const helpers = createEntityHelpers(config);
-const entity = await helpers.entity.getEntityBySlug(entitySlug);
-const canEdit = await helpers.permissions.canCreateProjects(entity.id, userId);
-```
-
-Permission model: owner (full access) > editor (create/edit) > viewer (read-only).
-
-### Database
-
-- **Connection**: Lazy-initialized via Proxy pattern (no connection until first query)
-- **Schema**: All tables in `whisperly` PostgreSQL schema
-- **Tables**: users, user_settings, entities, entity_members, entity_invitations, projects, project_languages, dictionary, dictionary_entry, usage_records, rate_limit_counters
-- **Initialization**: `initDatabase()` runs on startup -- creates schema, enums, tables, indexes, and runs entity migration
-
-```typescript
-import { db, projects } from "../db";
-import { eq, and } from "drizzle-orm";
-
-const results = await db.select().from(projects)
-  .where(and(eq(projects.entity_id, entityId), eq(projects.is_active, true)));
-```
-
-### Error Responses
-
-```typescript
-import { errorResponse } from "@sudobility/whisperly_types";
-return c.json({ ...errorResponse("Not found"), errorCode: "ENTITY_NOT_FOUND" }, 404);
-```
-
-Some routes include `errorCode` field for client-side i18n error lookup (e.g., `ENTITY_NOT_FOUND`, `ROLE_CANNOT_CREATE_PROJECTS`, `ACCESS_DENIED`).
-
-### Validation
-
-```typescript
-import { zValidator } from "@hono/zod-validator";
-app.post("/", zValidator("json", projectCreateSchema), async (c) => { ... });
-```
-
-### Translation Pipeline
-
-1. **Dictionary Phase**: Load project dictionary cache -> find terms in input -> wrap with `{{brackets}}`
-2. **Translation Service**: Call external service with bracketed strings
-3. **Dictionary Replacement**: Replace `{{term}}` placeholders with language-specific dictionary translations
-4. **Logging**: Record usage metrics to `usage_records` table (non-blocking)
-
-Additional features:
-- API key validation (if configured on project, supports Bearer token or `?api_key=` query)
-- IP allowlist enforcement (if configured on project)
-- Default target languages fallback from project configuration
-- `?testMode=true` includes debug info (cache state, term matches, processed strings)
-- `skip_dictionaries` option bypasses dictionary matching
-
-### Dictionary Cache
-
-- In-memory, lazy-loaded per project on first translation request
-- Cache key: `"entityId:projectId"`
-- Invalidated on dictionary create/update/delete mutations
-- Whole-word matching, case-insensitive, longest-match-first
-- All language entries for a dictionary are indexed (detection works in any language)
-
-### Rate Limiting
-
-- Per-entity (tied to RevenueCat subscription tier)
-- Tiers: `none` (free: 10/h, 50/d, 200/m), `whisperly` (100/h, 1k/d, 10k/m), `pro` (500/h, 5k/d, 50k/m), `enterprise` (unlimited)
-- Site admin entities bypass rate limits
-- `?testMode=true` query param switches to sandbox subscriptions
-- Gracefully disabled when `REVENUECAT_API_KEY` not configured
-- All rate limit singletons are lazy-initialized to avoid env var requirements at import time
-
-### Email Service
-
-- Uses Resend for transactional invitation emails
-- Non-blocking (`.catch()` logs errors, doesn't fail request)
-- Gracefully disabled when `RESEND_API_KEY` not configured
-
-### Docker Deployment
-
-- Base image: `oven/bun:latest` (multi-platform)
-- Runs as non-root user (`appuser:1001`)
-- Health check: `curl http://localhost:8021/health` (30s interval)
-- Process manager: `dumb-init`
-- Requires `NPM_TOKEN` build arg for private `@sudobility` packages
-
-## Environment Variables
-
-```bash
-# Required
-DATABASE_URL=postgres://...           # PostgreSQL connection (application only; tests delete it)
-TEST_DATABASE_URL=postgresql://localhost:5432/whisperly_test  # test:db only; must be localhost
-FIREBASE_PROJECT_ID=...               # Firebase project
-FIREBASE_CLIENT_EMAIL=...             # Firebase service account email
-FIREBASE_PRIVATE_KEY=...              # Firebase private key
-
-# Required for translation (mock fallback if unset)
-TRANSLATION_SERVICE_URL=...           # External translation service endpoint
-
-# Optional
-PORT=3000                             # Server port (default: 3000)
-NODE_ENV=production                   # Environment (affects error detail in responses)
-SITEADMIN_EMAILS=admin@example.com    # Comma-separated admin emails
-TRANSLATION_SERVICE_TIMEOUT=120000    # Translation timeout ms (default: 120000)
-TRANSLATION_MOCK_FALLBACK=true        # Use mock translations when service unreachable
-REVENUECAT_API_KEY=                   # RevenueCat for subscriptions (empty = free tier for all)
-RESEND_API_KEY=                       # Resend for emails (empty = disabled)
-RESEND_SENDER_EMAIL=                  # Sender email (default: onboarding@resend.dev)
-RESEND_SENDER_NAME=                   # Sender name (default: Whisperly)
-APP_URL=                              # App URL for email links (default: http://localhost:5173)
-```
-
-## Adding New Routes
-
-1. Create route file in `src/routes/`
-2. Define Zod schemas in `src/schemas/index.ts`
-3. Mount route in `src/routes/index.ts`
-4. For entity-scoped routes, use `firebaseAuthMiddleware` + entity permission helpers
-5. Add tests in `tests/` (matching directory structure)
-6. Use `successResponse()` / `errorResponse()` from `@sudobility/whisperly_types`
+### Adding a route
+1. New file in `src/routes/`. 2. Zod schema in `src/schemas/index.ts`. 3. Mount in
+`src/routes/index.ts` (under `adminRoutes` for authed routes). 4. Add tests mirroring the dir.
 
 ## Gotchas
 
-- **Port mismatch**: The API defaults to port `3000` (`PORT` env var), but `whisperly_app` defaults `VITE_API_BASE_URL` to `http://localhost:3001`. Ensure the ports match in your environment configuration.
-- **Entity helpers duplication**: Each route file creates its own `helpers = createEntityHelpers(config)` instance with the same config. This is intentional (module-level singletons per route).
-- **`getEntityWithPermission` helper**: Duplicated across `dictionary.ts`, `project-languages.ts`, and `projects.ts` with slight variations (e.g., projects.ts includes `errorCode`).
-- **DB proxy pattern**: The `db` export uses a Proxy for lazy initialization. Calling `db` before `initDatabase()` will create the connection on first access but won't run migrations.
-- **Entity factory tables**: Entity tables (`entities`, `entityMembers`, `entityInvitations`) are created via factory functions from `@sudobility/entity_service`. Some routes require explicit column selection because bare `.select()` doesn't work with factory-created Drizzle tables.
-- **Test mocking**: Auth and rate limit services are fully mocked via Vitest alias resolution, not `vi.mock()`. Tests use different module paths than source code.
-- **`rateLimitUserId` is entity slug**: Despite the name, the `:rateLimitUserId` path parameter in rate limit routes is actually the entity slug.
+- **Docker port**: Dockerfile `EXPOSE`s and health-checks `8021`, but the app listens on `PORT`
+  (default 3000). Set `PORT=8021` in the container or the health check fails.
+- **Docker build arg** is `GH_PACKAGES_TOKEN` (writes `~/.npmrc` for GitHub Packages), not `NPM_TOKEN`.
+- **Frontend port**: `whisperly_app` defaults its API base to `http://localhost:3001`; align ports.
+- No `bunfig.toml` — it was dead Bun-test config (the runner is vitest) and was removed; the
+  Dockerfile `COPY ... bunfig.toml*` glob tolerates its absence.
 
-## Dependencies
+## CI
 
-### Runtime
-- `hono` (^4.10.7) -- web framework
-- `drizzle-orm` (^0.45.0) + `postgres` (^3.4.7) -- database ORM + driver
-- `firebase-admin` (^13.6.0) -- JWT auth verification
-- `zod` (^3.24.0) + `@hono/zod-validator` (^0.7.5) -- request validation
-- `resend` (^6.9.2) -- transactional emails
-- `@sudobility/whisperly_types` (^1.0.23) -- shared types
-- `@sudobility/types` (^1.9.53) -- shared platform types
-- `@sudobility/auth_service` (^1.1.7) -- Firebase user verification + admin check
-- `@sudobility/entity_service` (^1.0.23) -- entity/member/invitation management
-- `@sudobility/ratelimit_service` (^1.0.24) -- rate limit checking
-- `@sudobility/subscription_service` (^1.0.5) -- RevenueCat integration
-
-### Dev
-- `typescript` (^5.9.3), `vitest` (^4.0.16), `drizzle-kit` (^0.31.8)
-- `eslint` (^9.39.2), `prettier` (^3.7.4)
-
-## Git Workflow
-
-- Do not use feature branches for code changes. Always stay on the current branch.
+`.github/workflows/ci-cd.yml` calls the reusable `johnqh/workflows/.../unified-cicd.yml`. `main`
+runs tests and deploys the Docker image (Docker Hub); npm publish is skipped (API server, not a lib).
