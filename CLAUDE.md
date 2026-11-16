@@ -39,7 +39,7 @@ fails. Use `bun run test:unit`.
 ```
 src/
 ├── index.ts            # Hono setup: error handler, CORS, logger, 2MB body limit,
-│                       # health checks (/ , /health, /health/detailed), initDatabase(), server
+│                       # health checks (/ , /health — single payload w/ detail), initDatabase(), server
 ├── config/             # languages.json (supported langs), rateLimits.ts (tier definitions)
 ├── db/
 │   ├── index.ts        # lazy Proxy `db` + initDatabase() (creates schema/enums/tables/indexes)

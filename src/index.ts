@@ -13,8 +13,8 @@ import routes from "./routes";
 import {
   successResponse,
   errorResponse,
-  type HealthCheckData,
-} from "@sudobility/whisperly_types";
+  type HealthResponse,
+} from "@sudobility/types";
 import { getEnv } from "./lib/env-helper";
 import { ErrorCode } from "./lib/error-codes";
 import { sql } from "drizzle-orm";
@@ -70,23 +70,10 @@ app.use(
   })
 );
 
-// Health check endpoints
-const healthResponse: HealthCheckData = {
-  name: "Whisperly API",
-  version: "1.0.0",
-  status: "healthy",
-};
-
-app.get("/", c => c.json(successResponse<HealthCheckData>(healthResponse)));
-app.get("/health", c =>
-  c.json(successResponse<HealthCheckData>(healthResponse))
-);
-
-/**
- * Detailed health check endpoint.
- * Verifies database connectivity in addition to basic service health.
- */
-app.get("/health/detailed", async c => {
+// Health check endpoint
+// Single canonical /health returning { status, version, detail } with dependency
+// checks folded into `detail`. `/` mirrors the same payload.
+const buildHealthResponse = async (): Promise<HealthResponse> => {
   const checks: Record<
     string,
     { status: string; latencyMs?: number; error?: string }
@@ -123,20 +110,22 @@ app.get("/health/detailed", async c => {
     ? { status: "configured" }
     : { status: "disabled" };
 
-  const overallStatus =
-    checks.database.status === "healthy" ? "healthy" : "degraded";
-
-  const detailedResponse: HealthCheckData & {
-    checks: typeof checks;
-    uptime: number;
-  } = {
-    ...healthResponse,
-    status: overallStatus,
-    checks,
-    uptime: process.uptime(),
+  return {
+    status: checks.database.status === "healthy" ? "healthy" : "unhealthy",
+    version: "1.0.0",
+    detail: {
+      ...checks,
+      uptime: process.uptime(),
+    },
   };
-  return c.json(successResponse(detailedResponse));
-});
+};
+
+app.get("/", async c =>
+  c.json(successResponse<HealthResponse>(await buildHealthResponse()))
+);
+app.get("/health", async c =>
+  c.json(successResponse<HealthResponse>(await buildHealthResponse()))
+);
 
 // API routes
 app.route("/api/v1", routes);

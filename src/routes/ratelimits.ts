@@ -6,8 +6,9 @@
  */
 
 import { Hono } from "hono";
-import { successResponse, errorResponse } from "@sudobility/whisperly_types";
 import {
+  successResponse,
+  errorResponse,
   RateLimitPeriodType,
   type RateLimitsConfigResponse,
   type RateLimitHistoryResponse,

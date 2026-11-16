@@ -9,7 +9,7 @@ import {
   isAnonymousUser,
   isSiteAdmin,
 } from "../services/firebase";
-import { errorResponse } from "@sudobility/whisperly_types";
+import { errorResponse } from "@sudobility/types";
 import { eq } from "drizzle-orm";
 import { db, users } from "../db";
 

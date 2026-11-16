@@ -4,12 +4,13 @@
 
 import { Hono } from "hono";
 import {
-  type BackendSubscriptionResult,
   NONE_ENTITLEMENT,
+  successResponse,
+  errorResponse,
+  type BackendSubscriptionResult,
   type UserInfoResponse,
 } from "@sudobility/types";
 import { getUserInfo } from "../services/firebase";
-import { successResponse, errorResponse } from "@sudobility/whisperly_types";
 import { getSubscriptionHelper, getTestMode } from "../middleware/subscription";
 
 const usersRouter = new Hono();

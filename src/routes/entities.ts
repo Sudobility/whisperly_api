@@ -5,12 +5,13 @@
  */
 
 import { Hono } from "hono";
-import { successResponse, errorResponse } from "@sudobility/whisperly_types";
-import type {
-  Entity,
-  EntityWithRole,
-  EntityMember,
-  EntityInvitation,
+import {
+  successResponse,
+  errorResponse,
+  type Entity,
+  type EntityWithRole,
+  type EntityMember,
+  type EntityInvitation,
 } from "@sudobility/types";
 import { entityHelpers } from "../lib/entity-config";
 import { ErrorCode } from "../lib/error-codes";

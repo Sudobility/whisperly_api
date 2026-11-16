@@ -15,7 +15,7 @@ import {
 } from "@sudobility/ratelimit_service";
 import { SubscriptionHelper } from "@sudobility/subscription_service";
 import { db, rateLimitCounters, entities, entityMembers, users } from "../db";
-import { errorResponse } from "@sudobility/whisperly_types";
+import { errorResponse } from "@sudobility/types";
 import { getEnv, getRequiredEnv } from "../lib/env-helper";
 import { rateLimitsConfig, TIER_DISPLAY_NAMES } from "../config/rateLimits";
 import { isSiteAdmin } from "../services/firebase";
